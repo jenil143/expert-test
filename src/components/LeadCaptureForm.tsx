@@ -10,13 +10,16 @@ export const LeadCaptureForm = () => {
   const [formData, setFormData] = useState({ name: '', email: '', industry: '' });
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [submitted, setSubmitted] = useState(false);
-  const [leads, setLeads] = useState<
-    Array<{ name: string; email: string; industry: string; submitted_at: string }>
-  >([]);
-
+  const [leadCount, setLeadCount] = useState(0);
   useEffect(() => {
-    setSubmitted(false);
-  }, []);
+    const fetchLeadCount = async () => {
+      const { count } = await supabase
+        .from('leads')
+        .select('*', { count: 'exact', head: true });
+      setLeadCount(count || 0);
+    };
+    fetchLeadCount();
+  }, [submitted]);
   const getFieldError = (field: string) => {
     return validationErrors.find(error => error.field === field)?.message;
   };
@@ -27,24 +30,23 @@ export const LeadCaptureForm = () => {
 
     if (errors.length === 0) {
       // Save to database
-try {
-  const { error: emailError } = await supabase.functions.invoke('send-confirmation', {
-    body: {
-      name: formData.name,
-      email: formData.email,
-      industry: formData.industry,
-    },
-  });
+      // Save to database
+      try {
+        const { data, error } = await supabase
+          .from('leads')
+          .insert([
+            { name: formData.name, email: formData.email, industry: formData.industry },
+          ])
+          .select();
 
-  if (emailError) {
-    console.error('Error sending confirmation email:', emailError);
-  } else {
-    console.log('Confirmation email sent successfully');
-  }
-} catch (emailError) {
-  console.error('Error calling email function:', emailError);
-}
-
+        if (error) {
+          console.error('Error saving lead to database:', error);
+        } else {
+          console.log('Lead saved to database:', data);
+        }
+      } catch (dbError) {
+        console.error('Error inserting lead:', dbError);
+      }
       // Send confirmation email
       try {
         const { error: emailError } = await supabase.functions.invoke('send-confirmation', {
@@ -64,13 +66,6 @@ try {
         console.error('Error calling email function:', emailError);
       }
 
-      const lead = {
-        name: formData.name,
-        email: formData.email,
-        industry: formData.industry,
-        submitted_at: new Date().toISOString(), 
-      };
-      setLeads([...leads, lead]);
       setSubmitted(true);
       setFormData({ name: '', email: '', industry: '' });
     }
@@ -100,7 +95,7 @@ try {
           </p>
 
           <p className="text-sm text-accent mb-8">
-            You're #{leads.length} in this session
+            You're subscriber #{leadCount + 1}
           </p>
 
           <div className="space-y-4">

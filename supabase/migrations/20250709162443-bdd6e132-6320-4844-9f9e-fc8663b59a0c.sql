@@ -19,10 +19,10 @@ FOR INSERT
 WITH CHECK (true);
 
 -- Create policy to allow reading leads (for analytics/dashboard later)
-CREATE POLICY "Anyone can view leads" 
-ON public.leads 
-FOR SELECT 
-USING (true);
+CREATE POLICY "Authenticated users can view leads"
+ON public.leads
+FOR SELECT
+USING (auth.role() = 'authenticated');
 
 -- Create function to update timestamps
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()

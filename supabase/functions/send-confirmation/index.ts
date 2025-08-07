@@ -2,7 +2,12 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_PUBLIC_KEY") || "invalid_key");
+const resendApiKey = Deno.env.get("RESEND_PUBLIC_KEY");
+if (!resendApiKey || resendApiKey === "invalid_key") {
+  console.error("Resend API key is not configured correctly.");
+  // You might want to throw an error or handle this case appropriately
+}
+const resend = new Resend(resendApiKey);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,7 +47,7 @@ const generatePersonalizedContent = async (name: string, industry: string) => {
     });
 
     const data = await response.json();
-    return data?.choices[1]?.message?.content;
+    return data?.choices[0]?.message?.content;
   } catch (error) {
     console.error('Error generating personalized content:', error);
     // Fallback content
